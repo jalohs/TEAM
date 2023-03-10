@@ -126,24 +126,38 @@ def train_or_eval_model(model, dataloader, optimizer=None, split="Train"):
     else:
         model.eval()
     
-    for batch in tqdm(dataloader, leave=False):
-        if split=="Train":
+    if split != "Train":
+        with torch.no_grad():
+            for batch in tqdm(dataloader, leave=False):
+                content, l_cls = batch
+                loss, p, p_cls = model(batch)
+        
+                preds.append(p)
+                preds_cls.append(p_cls)
+                labels_cls.append(l_cls)
+
+                losses.append(loss.item())
+
+            avg_loss = round(np.mean(losses), 4)
+    
+    if split=="Train":
+        for batch in tqdm(dataloader, leave=False):
+
             optimizer.zero_grad()
             
-        content, l_cls = batch
-        loss, p, p_cls = model(batch)
-        
-        preds.append(p)
-        preds_cls.append(p_cls)
-        labels_cls.append(l_cls)
-        
-        if split=="Train":
+            content, l_cls = batch
+            loss, p, p_cls = model(batch)
+
+            preds.append(p)
+            preds_cls.append(p_cls)
+            labels_cls.append(l_cls)
+
             loss.backward()
             optimizer.step()
             
-        losses.append(loss.item())
+            losses.append(loss.item())
 
-    avg_loss = round(np.mean(losses), 4)
+        avg_loss = round(np.mean(losses), 4)
     
     if split=="Train":
         wandb.log({"Train Loss": avg_loss})
