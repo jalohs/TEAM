@@ -49,13 +49,15 @@ class Model(nn.Module):
 
     def forward(self, batch):
         content, labels  = batch
-        logits = self.score_input(content)    
+        logits = self.score_input(content)
+        reshaped_logits = logits[:,0].view(-1, self.num_choices)
         labels = torch.tensor(labels, dtype=torch.long).to(logits.device)
-        loss = self.ce_loss_func(logits, labels)
+        labels_for_score = labels.view(-1, self.num_choices).argmax(dim=1)
+        loss = self.ce_loss_func(reshaped_logits, labels_for_score)
         preds_cls = list(torch.argmax(logits, 1).cpu().numpy())
-        positive_logits = logits[:, 1]
+        #positive_logits = logits[:, 1]
         
-        preds = torch.argmax(positive_logits.reshape(-1, self.num_choices), 1)
+        preds = torch.argmax(reshaped_logits, 1)
         preds = list(preds.cpu().numpy())
 
         torch.cuda.empty_cache()
