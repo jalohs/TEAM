@@ -23,6 +23,7 @@ import os
 import sys
 import time
 import json
+import wandb
 from dataclasses import dataclass, field
 from typing import Optional, Union
 from datetime import datetime
@@ -265,7 +266,7 @@ def main():
             )
 
     # Set seed before initializing model.
-    set_seed(training_args.seed)
+#    set_seed(training_args.seed)
 
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
     # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
@@ -595,7 +596,14 @@ def main():
         running_set = "test"
         logger.info("*** Test ***")
 
-        metrics = trainer.predict(test_dataset)
+        outputs = trainer.predict(test_dataset).predictions
+        preds_cls = np.argmax(outputs, 1)
+        fname = "saved/" + dataset + "/mcq/" + exp_id + "/" + "test_pred.txt"
+        test_predictions_txt = "".join([str(num) + "\n" for num in preds_cls])
+        open(fname, "w").write(test_predictions_txt)
+        wandb.log({"exp_id": wandb.Table(columns=['exp_id'], data=[[exp_id]])})
+
+        #metrics = trainer.predict(test_dataset)
         # max_test_samples = len(test_dataset)
         # metrics["test_samples"] = len(test_dataset)
         # trainer.log_metrics("test", metrics)
